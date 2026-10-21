@@ -1,0 +1,16 @@
+{
+  "name": "reservation-query",
+  "version": "1.0.0",
+  "description": "Lambda de lectura de reservas: el BFF la invoca por su Function URL y devuelve el JSON de las reservas",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --check index.js && node --check src/handler.js && node --check src/reservation.repository.js && echo OK"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

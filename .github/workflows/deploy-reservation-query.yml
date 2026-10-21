@@ -1,0 +1,88 @@
+name: Deploy reservation-query to AWS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reservation-query/**'
+      - '.github/workflows/deploy-reservation-query.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
+    defaults:
+      run:
+        working-directory: reservation-query
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: reservation-query/package-lock.json
+
+      - name: Install deps (prod only)
+        run: npm ci --omit=dev
+
+      - name: Build zip (lo que hoy haces a mano)
+        run: |
+          zip -r ../query-function.zip . -x "*.git*" "*.DS_Store*" "node_modules/.cache/*"
+          ls -lh ../query-function.zip
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ secrets.LAMBDA_QUERY_FUNCTION_NAME }}" \
+            --zip-file "fileb://../query-function.zip"
+
+          aws lambda wait function-updated \
+            --function-name "${{ secrets.LAMBDA_QUERY_FUNCTION_NAME }}"
+
+      # OJO: `update-function-configuration` REEMPLAZA todas las env vars de la Lambda,
+      # no solo una. Por eso aquí se escribe el set COMPLETO.
+      - name: Update Lambda env
+        if: ${{ env.DATABASE_URL != '' }}
+        run: |
+          aws lambda update-function-configuration \
+            --function-name "${{ secrets.LAMBDA_QUERY_FUNCTION_NAME }}" \
+            --environment "Variables={DATABASE_URL=$DATABASE_URL,DATABASE_SSL=$DATABASE_SSL}"
+
+      # La Lambda de lectura se publica con una Function URL: es lo que el BFF invoca
+      # para resolver GET /api/v1/reservations. Si ya existe, la actualiza; si no, la crea.
+      - name: Ensure Function URL exists
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_QUERY_FUNCTION_NAME }}"
+          if aws lambda get-function-url-config --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
+            echo "La Function URL ya existe, se actualiza"
+            aws lambda update-function-url-config \
+              --function-name "$FUNCTION_NAME" \
+              --auth-type NONE \
+              --invoke-mode BUFFERED
+          else
+            echo "La Function URL no existe, se crea"
+            aws lambda create-function-url-config \
+              --function-name "$FUNCTION_NAME" \
+              --auth-type NONE \
+              --invoke-mode BUFFERED
+          fi
+
+      - name: Show Function URL (copiala en RESERVATIONS_LAMBDA_URL del BFF)
+        run: |
+          aws lambda get-function-url-config \
+            --function-name "${{ secrets.LAMBDA_QUERY_FUNCTION_NAME }}" \
+            --query 'FunctionUrl'

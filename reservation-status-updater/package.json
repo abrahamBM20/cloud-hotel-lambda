@@ -1,0 +1,16 @@
+{
+  "name": "reservation-status-updater",
+  "version": "1.0.0",
+  "description": "Consume los cambios de estado {type:'reservation.status-changed', body} desde SQS, actualiza la reserva y libera la habitación si corresponde",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --check index.js && node --check src/handler.js && node --check src/reservation.service.js && node --check src/reservation.repository.js && node --check src/notifier.js && echo OK"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

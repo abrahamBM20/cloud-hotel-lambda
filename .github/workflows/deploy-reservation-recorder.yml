@@ -1,0 +1,71 @@
+name: Deploy reservation-recorder to AWS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reservation-recorder/**'
+      - '.github/workflows/deploy-reservation-recorder.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Se expone el secret como env porque el contexto `secrets`
+    # no está permitido dentro de un `if:` (da "Unrecognized named-value").
+    # Si el secret no existe, queda como string vacío y el paso se salta.
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
+      NOTIFY_MODE: ${{ secrets.NOTIFY_MODE || 'log' }}
+      API_NOTIFICATION: ${{ secrets.API_NOTIFICATION }}
+      API_TOKEN_INTEGRATION: ${{ secrets.API_TOKEN_INTEGRATION }}
+    defaults:
+      run:
+        working-directory: reservation-recorder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: reservation-recorder/package-lock.json
+
+      - name: Install deps (prod only)
+        run: npm ci --omit=dev
+
+      - name: Build zip (lo que hoy haces a mano)
+        run: |
+          zip -r ../recorder-function.zip . -x "*.git*" "*.DS_Store*" "node_modules/.cache/*"
+          ls -lh ../recorder-function.zip
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ secrets.LAMBDA_RECORDER_FUNCTION_NAME }}" \
+            --zip-file "fileb://../recorder-function.zip"
+
+          # Espera a que termine la actualización de código
+          # antes de tocar la configuración (si no, falla con "busy")
+          aws lambda wait function-updated \
+            --function-name "${{ secrets.LAMBDA_RECORDER_FUNCTION_NAME }}"
+
+      # OJO: `update-function-configuration` REEMPLAZA todas las env vars de la Lambda,
+      # no solo una. Por eso aquí se escribe el set COMPLETO.
+      - name: Update Lambda env
+        if: ${{ env.DATABASE_URL != '' }}
+        run: |
+          aws lambda update-function-configuration \
+            --function-name "${{ secrets.LAMBDA_RECORDER_FUNCTION_NAME }}" \
+            --environment "Variables={DATABASE_URL=$DATABASE_URL,DATABASE_SSL=$DATABASE_SSL,NOTIFY_MODE=$NOTIFY_MODE,API_NOTIFICATION=$API_NOTIFICATION,API_TOKEN_INTEGRATION=$API_TOKEN_INTEGRATION}"

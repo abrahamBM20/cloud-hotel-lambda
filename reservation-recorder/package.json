@@ -1,0 +1,16 @@
+{
+  "name": "reservation-recorder",
+  "version": "1.0.0",
+  "description": "Consume las solicitudes {type:'reservation.requested', body} desde SQS, inserta la reserva en PostgreSQL y ocupa la habitación",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --check index.js && node --check src/handler.js && node --check src/reservation.service.js && node --check src/reservation.repository.js && node --check src/notifier.js && echo OK"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

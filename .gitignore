@@ -1,0 +1,7 @@
+node_modules/
+*.zip
+.DS_Store
+.env
+
+# Salida de setup-lab.sh: contiene el secreto de la pasarela.
+lab-resources.env

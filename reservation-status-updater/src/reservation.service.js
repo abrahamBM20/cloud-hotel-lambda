@@ -50,7 +50,7 @@ async function changeStatus(input) {
 
   // El aviso es best-effort: la reserva ya quedó actualizada y no conviene reintentar el mensaje.
   try {
-    await notifier.sendNotice(buildNotice(row, roomFreed, newStatus));
+    await notifier.sendNotice(buildNotice(row, roomFreed, newStatus), row?.guest_email);
   } catch (noticeError) {
     console.error("No se pudo publicar el aviso del cambio de estado:", noticeError);
   }

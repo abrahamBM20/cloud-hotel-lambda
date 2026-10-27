@@ -44,6 +44,13 @@ function jsonResponse(statusCode, payload) {
 
 exports.handler = async (event) => {
   try {
+    const expectedToken = process.env.RESERVATIONS_QUERY_TOKEN;
+    const suppliedToken = event?.headers?.["x-internal-query-token"]
+      ?? event?.headers?.["X-Internal-Query-Token"];
+    if (!expectedToken || suppliedToken !== expectedToken) {
+      return jsonResponse(403, { error: "Invocación no autorizada" });
+    }
+
     const { method, path, query } = parseEvent(event);
 
     if (method !== "GET" && method !== "POST") {

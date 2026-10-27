@@ -10,6 +10,8 @@ dispara para crear y modificar reservas.
 | `reservation-query/` | `reservation-query` | Function URL | **Lectura**: devuelve el JSON de las reservas |
 
 La infra de AWS (topic SNS, colas, FilterPolicies, IAM) está en **[DEPLOY.md](./DEPLOY.md)**.
+La guía completa de Vercel, EC2, API Gateway, Cognito, Supabase, SES y GitHub Actions
+está en **[GUIA-IMPLEMENTACION-AWS.md](../GUIA-IMPLEMENTACION-AWS.md)**.
 
 ---
 
@@ -133,6 +135,24 @@ y responde:
 
 El handler contempla las dos formas en que llega el evento: invocación directa (consola de
 Lambda) y a través de la Function URL (donde el payload viaja dentro de `event.body`).
+Además exige `X-Internal-Query-Token`; el frontend nunca llama esta URL directamente.
+
+## Correo con EmailJS
+
+`reservation-recorder` y `reservation-status-updater` utilizan EmailJS cuando:
+
+```env
+NOTIFY_MODE=emailjs
+EMAILJS_SERVICE_ID=service_xxxxx
+EMAILJS_TEMPLATE_ID=template_xxxxx
+EMAILJS_PUBLIC_KEY=tu_public_key
+EMAILJS_PRIVATE_KEY=tu_private_key
+```
+
+`EMAILJS_PRIVATE_KEY` es opcional, pero se recomienda configurarlo en Lambda como
+`accessToken`. El template debe usar al menos las variables `{{to_email}}`,
+`{{subject}}` y `{{message}}`. El remitente se configura dentro del servicio de
+correo conectado a EmailJS; no se necesita permiso adicional de IAM.
 
 ---
 

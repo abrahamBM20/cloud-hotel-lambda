@@ -14,6 +14,7 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
+      RESERVATIONS_QUERY_TOKEN: ${{ secrets.RESERVATIONS_QUERY_TOKEN }}
     defaults:
       run:
         working-directory: reservation-query
@@ -60,7 +61,7 @@ jobs:
         run: |
           aws lambda update-function-configuration \
             --function-name "${{ secrets.LAMBDA_QUERY_FUNCTION_NAME }}" \
-            --environment "Variables={DATABASE_URL=$DATABASE_URL,DATABASE_SSL=$DATABASE_SSL}"
+            --environment "Variables={DATABASE_URL=$DATABASE_URL,DATABASE_SSL=$DATABASE_SSL,RESERVATIONS_QUERY_TOKEN=$RESERVATIONS_QUERY_TOKEN}"
 
       # La Lambda de lectura se publica con una Function URL: es lo que el BFF invoca
       # para resolver GET /api/v1/reservations. Si ya existe, la actualiza; si no, la crea.

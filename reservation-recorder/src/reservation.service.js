@@ -54,7 +54,7 @@ async function recordReservation(input) {
   // El aviso es best-effort: si la API de avisos falla, la reserva ya quedó guardada y
   // no conviene reintentar el mensaje (duplicaría la fila). Se deja registrado el error.
   try {
-    await notifier.sendNotice(buildNotice(row, occupied, request));
+    await notifier.sendNotice(buildNotice(row, occupied, request), row?.guest_email ?? request.guestEmail);
   } catch (noticeError) {
     console.error("No se pudo publicar el aviso de la reserva:", noticeError);
   }

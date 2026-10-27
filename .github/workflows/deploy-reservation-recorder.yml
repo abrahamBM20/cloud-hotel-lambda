@@ -17,9 +17,9 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
-      NOTIFY_MODE: ${{ secrets.NOTIFY_MODE || 'log' }}
-      API_NOTIFICATION: ${{ secrets.API_NOTIFICATION }}
-      API_TOKEN_INTEGRATION: ${{ secrets.API_TOKEN_INTEGRATION }}
+      NOTIFY_MODE: ses
+      SES_FROM_EMAIL: ${{ secrets.SES_FROM_EMAIL }}
+      SES_REGION: ${{ secrets.AWS_REGION }}
     defaults:
       run:
         working-directory: reservation-recorder
@@ -68,4 +68,4 @@ jobs:
         run: |
           aws lambda update-function-configuration \
             --function-name "${{ secrets.LAMBDA_RECORDER_FUNCTION_NAME }}" \
-            --environment "Variables={DATABASE_URL=$DATABASE_URL,DATABASE_SSL=$DATABASE_SSL,NOTIFY_MODE=$NOTIFY_MODE,API_NOTIFICATION=$API_NOTIFICATION,API_TOKEN_INTEGRATION=$API_TOKEN_INTEGRATION}"
+            --environment "Variables={DATABASE_URL=$DATABASE_URL,DATABASE_SSL=$DATABASE_SSL,NOTIFY_MODE=$NOTIFY_MODE,SES_FROM_EMAIL=$SES_FROM_EMAIL,SES_REGION=$SES_REGION,AWS_REGION=$SES_REGION}"
